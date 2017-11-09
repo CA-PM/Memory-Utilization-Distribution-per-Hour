@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>CPU Utilization Distribution</title>
+    <link rel="stylesheet" href="./css/nv.d3.css"></link>
+    <script src="./lib/caHelperFunctions.js"></script>
+    <script src="./lib/jquery/jquery-1.11.1.min.js"></script>
+    <script src="./lib/d3/d3.min.js"></script>
+    <script src="./lib/nvd3/nv.d3.js"></script>
+    <script src="./lib/spin.js"></script>
+</head>
+
+<body>	
+		<row>
+	     <div id="barChart" style="height: 250px;">
+	       <svg></svg>
+	     </div>
+	   </row>
+	<script>
+
+    // Object to hold final results set
+    var finalData = [{key: "Over 75%", values: [] },
+                      {key: "Over 50%", values: [] },
+                      {key: "Over 25%", values: [] },
+                      {key: "Under 25%", values: []}];
+
+  // Use JQuery to determine when document loads
+  $(document).ready(function () {
+
+    var spinTarget = document.getElementById('barChart');
+    var spinner = new Spinner({color:'#000000', lines: 12}).spin(spinTarget);
+
+    // Get Parameters from CAPC Browser view URL
+      var testMode=getQueryVariable("test");
+      var id=getQueryVariable("id") // id={itemIdDa}
+      var startTime=getQueryVariable("startTime"); // startTime={TimeStartUTC}
+      var endTime=getQueryVariable("endTime"); // endTime={TimeEndUTC}
+      var itemType=getQueryVariable("itemType");
+
+    // Determine resolution to use within query as well as dynamically determine max # of rows
+    // based on time-range and resolution
+      var resolution;
+      if (endTime - startTime > 604800) { 
+        resolution="HOUR"; resolutionNumber=3600;
+      }
+      else { 
+        resolution="RATE";resolutionNumber=300
+      };
+      // Determine max rows needed in query based on time range and resolution
+      var rows=(endTime - startTime) / resolutionNumber; 
+      var url;
+
+
+    // Determine URL or data set to load
+      if (testMode) {
+          url="./deviceCPU.csv";
+          metricFamily="cpumfs"
+          metric="im_Utilization";
+          niceMetric=metric.split(/(?=[A-Z])/).join(" ");
+          niceMetricName=niceMetric.substring(niceMetric.indexOf('_')+1);
+      }
+      else {
+
+        if (itemType == "device") {
+            url="/pc/odata/api/memorymfs?$select=Timestamp,im_Utilization" +
+              "&$filter=((DeviceItemID eq " + id + "))" +
+              "&starttime=" + startTime + "&endtime=" + endTime + "&resolution=" + resolution +
+              "&$top=" + rows +
+              "&$format=text/csv";
+        }
+        else if (itemType == "group" || itemType == "site") {
+            url="/pc/odata/api/memorymfs?$select=Timestamp,im_Utilization" +
+              "&$filter=((groups/ID eq " + id + "))" +
+              "&starttime=" + startTime + "&endtime=" + endTime + "&resolution=" + resolution +
+              "&$top=" + rows +
+              "&$format=text/csv";
+        }
+        
+
+        console.log("URL: " + url);
+
+      }
+    // Load data set using D3.js 
+      d3.csv(url,function(error, data) {
+        if (error) {
+          spinner.stop();
+          alert("Error loading data set: " + error)
+        }
+        else {
+          spinner.stop();
+          parseData(data); // Parse and bucketize the data
+        }
+    });
+
+  function parseData(thisData) {
+
+    var formatTime=d3.time.format("%H")
+    var utilizationByDevice = d3.nest()
+        .key(function(d) { 
+            var date= new Date(d.Timestamp * 1000);
+            return formatTime(date);
+            }
+          ).sortKeys(d3.ascending)
+        .rollup(function(leaves) { return {
+          total: leaves.length,
+          mean: d3.mean(leaves, function(d) { return Number(d.im_Utilization); }),
+          min: d3.min(leaves, function(d) { return Number(d.im_Utilization); }),
+          max: d3.max(leaves, function(d) { return Number(d.im_Utilization); }),
+          range1: d3.sum(leaves, function (d) { if (d.im_Utilization >= 75 ) { return 1} }),
+          range2: d3.sum(leaves, function (d) { if ((d.im_Utilization < 75) &&  (d.im_Utilization >= 50)) { return 1} }),
+          range3: d3.sum(leaves, function (d) { if ((d.im_Utilization < 50) &&  (d.im_Utilization >= 25)) { return 1} }),
+          range4: d3.sum(leaves, function (d) { if (d.im_Utilization < 25) {  return 1} }),
+        }})
+        .entries(thisData);
+
+    utilizationByDevice.forEach(function (d) {
+      finalData[0].values.push({
+          'x': d.key,
+          'y': (d.values.range1 / d.values.total) * 100
+      })
+      finalData[1].values.push({
+          'x': d.key,
+          'y': (d.values.range2 / d.values.total) * 100
+      })
+      finalData[2].values.push({
+          'x': d.key,
+          'y': (d.values.range3 / d.values.total) * 100
+      })
+      finalData[3].values.push({
+          'x': d.key,
+          'y': (d.values.range4 / d.values.total) * 100
+      })
+
+    })
+    nv.addGraph(function() {
+      
+      var chart = nv.models.multiBarChart()
+                .transitionDuration(100)
+                .reduceXTicks(false)   //If 'false', every single x-axis tick label will be rendered.
+                //.rotateLabels(-45)      //Angle to rotate x-axis labels.
+                .margin({top: 50, right: 50, bottom: 50, left: 80})
+                .stacked(true)
+                .showControls(false)  //Allow user to switch between 'Grouped' and 'Stacked' mode.
+                .groupSpacing(.4)    //Distance between each group of bars.
+      chart.color(["#d62626","#F38C31","#FDF46D","#62bc51"])
+      chart.options({forceY: [0,100]})
+      chart.height(250)
+      chart.yAxis
+          .tickFormat(d3.format(',.1f'));
+      chart.yAxis
+            .axisLabel('% of time Memory Utilization in range');
+      chart.tooltips(true)
+      chart.tooltipContent(function(key, y, e, graph) {
+          var data =graph.series.values[y-1];
+              return  '<p> <h3>' + y +'</h3></p>' +
+                      '<p>' +  e + '% of samples were ' + key + ' Utilization';
+            });
+      d3.select('#barChart svg')
+          .datum(finalData)
+          .call(chart);
+
+      nv.utils.windowResize(chart.update);
+
+      return chart;
+  });
+  }
+
+
+
+}); 
+
+
+</script>
+</body>
+</html>
+
+
