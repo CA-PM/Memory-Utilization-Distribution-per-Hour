@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Memory Utilization Distribution
 
 ![About](SCREEN-Memory-Utilization-Distribution.png)
