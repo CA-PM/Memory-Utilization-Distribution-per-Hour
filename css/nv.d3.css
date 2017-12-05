@@ -18,9 +18,9 @@
   -webkit-box-shadow: 0 5px 10px rgba(0,0,0,.2);
   box-shadow: 0 5px 10px rgba(0,0,0,.2);
 
-  -webkit-border-radius: 6px;
-  -moz-border-radius: 6px;
-  border-radius: 6px;
+  -webkit-border-radius: 2px;
+  -moz-border-radius: 2px;
+  border-radius: 2px;
 }
 
 /********************
@@ -34,8 +34,8 @@
   border: 1px solid rgba(0,0,0,.2);
   z-index: 10000;
 
-  font-family: Helvetica;
-  font-size: 11px;
+  font-family: Arial,Helvetica,sans-serif;
+  font-size: 12px;
   text-align: left;
   pointer-events: none;
 
@@ -47,6 +47,12 @@
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.20), 0 1px 2px rgba(0,0,0,0.40);
+  border-radius: 2px;
+  border-color:#b4b6b8;
+  border-style:solid;
+  border-width:1px;
+  margin-top:2px;
 }
 
 /*Give tooltips that old fade in transition by
@@ -69,10 +75,11 @@
 
 .nvtooltip h3 {
   margin: 0;
-  padding: 4px 14px;
-  line-height: 18px;
+  padding: 0;
+  padding-bottom:7px;
+  line-height: 16px;
   font-weight: normal;
-  background-color: rgba(247,247,247,0.75);
+  background-color:#FFF;
   text-align: center;
 
   border-bottom: 1px solid #ebebeb;
@@ -84,7 +91,10 @@
 
 .nvtooltip p {
   margin: 0;
-  padding: 5px 14px;
+  padding: 0;
+  padding-bottom:7px;
+  padding-left:8px;
+  padding-right:8px;
   text-align: center;
 }
 

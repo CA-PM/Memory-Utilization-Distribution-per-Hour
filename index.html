@@ -63,14 +63,14 @@
       else {
 
         if (itemType == "device") {
-            url="/pc/odata/api/memorymfs?$select=Timestamp,im_Utilization" +
+            url="/pc/odata/api/cpumfs?$select=Timestamp,im_Utilization" +
               "&$filter=((DeviceItemID eq " + id + "))" +
               "&starttime=" + startTime + "&endtime=" + endTime + "&resolution=" + resolution +
               "&$top=" + rows +
               "&$format=text/csv";
         }
         else if (itemType == "group" || itemType == "site") {
-            url="/pc/odata/api/memorymfs?$select=Timestamp,im_Utilization" +
+            url="/pc/odata/api/cpumfs?$select=Timestamp,im_Utilization" +
               "&$filter=((groups/ID eq " + id + "))" +
               "&starttime=" + startTime + "&endtime=" + endTime + "&resolution=" + resolution +
               "&$top=" + rows +
